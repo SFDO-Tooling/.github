@@ -1,0 +1,56 @@
+name: Shared SFDO-Tooling Docs Review Workflow
+on:
+  pull_request:
+    types:
+      - labeled
+  workflow_call:
+
+env:
+  DOCS_TEAM: 'SFDO-Tooling/doc-writers'
+jobs:
+  docs_review_needed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Labeled Doc review needed
+        id: docs-labeled-review-needed
+        if: github.event.action == 'labeled' && !github.event.pull_request.draft &&
+            contains(github.event.label.name, 'doc review needed')
+        uses: SFDO-Tooling/github-script@v4
+        with:
+          script: |
+            const comment_body = `This pull request has been labeled as ready for docs review and requires review from @${process.env.DOCS_TEAM}. This workflow will fail until this pull request is labeled as 'docs reviewed'.`
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment_body,
+            });
+
+            core.setFailed('PR requires doc review.');
+      - name: Labeled Doc review complete
+        id: docs-labeled-reviewed
+        if: github.event.action == 'labeled' && !github.event.pull_request.draft &&
+            contains(github.event.label.name, 'docs reviewed')
+        uses: SFDO-Tooling/github-script@v4
+        with:
+          script: |
+            const comment_body = `This pull request has been labeled as reviewed by @{context.payload.sender.login}.`
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment_body,
+            });
+
+            try {
+              github.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: 'doc review needed',
+              });
+            } catch (err) {
+              console.error(err);
+            }
