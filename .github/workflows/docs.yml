@@ -6,7 +6,7 @@ on:
   workflow_call:
 
 env:
-  DOCS_TEAM: 'doc-writers'
+  DOCS_TEAM: 'SFDO-Tooling/doc-writers'
 jobs:
   docs_review_needed:
     runs-on: ubuntu-latest
