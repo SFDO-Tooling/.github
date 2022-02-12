@@ -1,56 +1,61 @@
 name: Shared SFDO-Tooling Docs Review Workflow
 on:
   pull_request:
-    types:
-      - labeled
+    paths:
+      - '**.md'
+      - '**.rst'
+  pull_request_review:
+    types: [submitted]
   workflow_call:
 
 env:
-  DOCS_TEAM: 'SFDO-Tooling/doc-writers'
+  DOCS_TEAM: 'pconrad-sfdo'
+
 jobs:
   docs_review_needed:
     runs-on: ubuntu-latest
     steps:
-      - name: Labeled Doc review needed
-        id: docs-labeled-review-needed
-        if: github.event.action == 'labeled' && !github.event.pull_request.draft &&
-            contains(github.event.label.name, 'doc review needed')
+      - name: Document review needed (RST/MD)
+        id: docs-filetypes-review-needed
+        if: !github.event.pull_request.draft &&
+            !contains(github.event.issue.labels.*.name, 'doc review needed') &&
+            !contains(github.event.pull_request.requested_reviewers.*.login, env.DOCS_TEAM) &&
         uses: SFDO-Tooling/github-script@v4
         with:
           script: |
-            const comment_body = `This pull request has been labeled as ready for docs review and requires review from @${process.env.DOCS_TEAM}. This workflow will fail until this pull request is labeled as 'docs reviewed'.`
-
-            github.issues.createComment({
+            github.pulls.requestReviewers({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment_body,
+              reviewers: ["${process.env.DOCS_TEAM}"],
+            });
+
+            github.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['doc review needed'],
             });
 
             core.setFailed('PR requires doc review.');
-      - name: Labeled Doc review complete
-        id: docs-labeled-reviewed
-        if: github.event.action == 'labeled' && !github.event.pull_request.draft &&
-            contains(github.event.label.name, 'docs reviewed')
+  docs_reviewed:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_review' &&
+        github.event.review.state == 'approved' &&
+        github.event.review.user.login == env.DOCS_TEAM &&
+    steps:
+      - name: Remove review needed label
+        id: rm-docs-review-label
+        if: contains(github.event.issue.labels.*.name, 'doc review needed')
         uses: SFDO-Tooling/github-script@v4
         with:
           script: |
-            const comment_body = `This pull request has been labeled as reviewed by @${context.payload.sender.login}.`
-
-            github.issues.createComment({
+            github.issues.removeLabel({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment_body,
+              name: 'doc review needed',
             });
-
-            try {
-              github.issues.removeLabel({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: 'doc review needed',
-              });
-            } catch (err) {
-              console.error(err);
-            }
+      - name: Doc review complete
+        id: docs-reviewed
+        run: exit 0
