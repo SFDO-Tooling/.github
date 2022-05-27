@@ -1,7 +1,13 @@
 name: Update Python Dependencies
 
 on:
-    workflow_dispatch:
+    workflow_call:
+        inputs:
+            python-version:
+                description: "Python version used by pip-tools."
+                required: false
+                type: string
+                default: '3.10'
 
 jobs:
     update_dependencies:
