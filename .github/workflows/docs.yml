@@ -9,7 +9,7 @@ env:
   DOCS_TEAM: 'SFDO-Tooling/doc-writers'
 jobs:
   docs_review_needed:
-    runs-on: ubuntu-latest
+    runs-on: sfdc-ubuntu-latest
     steps:
       - name: Labeled Doc review needed
         id: docs-labeled-review-needed
