@@ -26,7 +26,7 @@ jobs:
           cache: pip
       - name: pre-commit cache
         id: pc_cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pre-commit
           key: ${{ steps.py.outputs.python-version }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
